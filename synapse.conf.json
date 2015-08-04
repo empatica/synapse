@@ -1,34 +1,40 @@
 {
-    "services": {
-        "myservice": {
-            "discovery": {
-                "method": "aws_ecs",
-                "aws_region": "us-east-1",
-                "aws_ecs_cluster": "test",
-                "aws_ecs_family": "synapse-test",
-                "aws_access_key_id": "",
-                "aws_secret_access_key": "",
-                "check_interval": 120
-            },
-            "haproxy": {
-                "port": 50003,
-                "listen": [
-                    "mode http"
+    "services":{
+            "test-service": {
+                "discovery": {
+                    "method": "base"
+                },
+                "default_servers": [
+                    {
+                        "name": "google",
+                        "host": "216.58.212.110",
+                        "port": 80
+                    },
+                    {
+                        "name": "wikipedia",
+                        "host": "91.198.174.192",
+                        "port": 80
+                    }
                 ],
-                "server_port_override": "50001",
-                "server_backup_port": "50002",
-                "server_options": "check"
+                "haproxy": {
+                    "port": 50003,
+                    "listen": [
+                        "mode http"
+                    ],
+                    "server_port_override": "50001",
+                    "server_backup_port": "50002",
+                    "server_options": "check"
+                }
             }
-        }
-    },
-    "haproxy": {
+        },
+        "haproxy": {
         "reload_command": "echo noop",
         "config_file_path": "/etc/haproxy/haproxy.cfg",
         "socket_file_path": "/var/haproxy/stats.sock",
         "do_writes": true,
         "do_reloads": true,
         "do_socket": false,
-        "bind_address": "0.0.0.0",
+        "bind_address": "*",
         "global": [
             "daemon",
             "user    haproxy",
