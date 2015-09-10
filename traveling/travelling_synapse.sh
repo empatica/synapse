@@ -1,35 +1,67 @@
 #!/bin/bash
+set -e
+set -x
 
-#mkdir -p lib/app
-#copy stuff
-
+# ------------ Base Traveling Ruby package ---------------
 mkdir packaging
 cd packaging # <ROOT>/packaging
 curl -L -O --fail http://d6r77u77i8pq3.cloudfront.net/releases/traveling-ruby-20150715-2.2.2-linux-x86_64.tar.gz
 cd .. #<ROOT>/
-mkdir -p lib/ruby && tar -xzf packaging/traveling-ruby-20150715-2.2.2-linux-x86_64.tar.gz -C lib/ruby
+mkdir -p synapse-linux-x86_64/lib/ruby && tar -xzf packaging/traveling-ruby-20150715-2.2.2-linux-x86_64.tar.gz -C synapse-linux-x86_64/lib/ruby
 
+# ------------ Installing dependencies ---------------
 mkdir -p packaging/tmp
-
+mkdir -p synapse-linux-x86_64/lib/vendor/
 cp ../Gemfile ../Gemfile.lock ../synapse.gemspec packaging/tmp/
-##cp -r ../lib/synapse/* packaging/tmp/synapse/
 cd packaging/tmp #<ROOT>/packaging
-BUNDLE_IGNORE_CONFIG=1 bundle install --path ../vendor --without development
+BUNDLE_IGNORE_CONFIG=1 bundle install -j8 --path ../vendor --without development
 cd ../.. #<ROOT>/
 
-cp -pR packaging/vendor lib/
-cp ../Gemfile ../Gemfile.lock ../synapse.gemspec lib/vendor/
+printf "
+gem 'synapse'" > synapse-linux-x86_64/lib/vendor/Gemfile
 
-mkdir lib/vendor/.bundle
-printf "BUNDLE_PATH: .\nBUNDLE_WITHOUT: development\nBUNDLE_DISABLE_SHARED_GEMS: '1'" > lib/vendor/.bundle/config
-printf '#!/bin/bash\nset -e\nSELFDIR="`dirname \"$0\"`"\nSELFDIR="`cd \"$SELFDIR\" && pwd`"\nexport BUNDLE_GEMFILE="$SELFDIR/lib/vendor/Gemfile"\nunset BUNDLE_IGNORE_CONFIG\nexec "$SELFDIR/lib/ruby/bin/ruby" -rbundler/setup "$SELFDIR/lib/ruby/gems/2.2.0/bin/synapse"' > synapse
+#cp ../Gemfile ../Gemfile.lock ../synapse.gemspec synapse-linux-x86_64/lib/vendor/
 
-cd lib/vendor #<ROOT>/lib/vendor
-gem install synapse -i ruby/2.2.0 --verbose --no-ri --no-rdoc
+# ------------ Exe wrapper ---------------
+printf "
+BUNDLE_PATH: .
+BUNDLE_WITHOUT: development
+BUNDLE_DISABLE_SHARED_GEMS: '1'" > packaging/bundler-config
 
+mkdir synapse-linux-x86_64/lib/vendor/.bundle
+cp packaging/bundler-config synapse-linux-x86_64/lib/vendor/.bundle/config
+
+printf '
+#!/bin/bash
+set -e
+
+# Figure out where this script is located.
+SELFDIR="`dirname \"$0\"`"
+SELFDIR="`cd \"$SELFDIR\" && pwd`"
+
+# Tell Bundler where the Gemfile and gems are.
+export BUNDLE_GEMFILE="$SELFDIR/lib/vendor/Gemfile"
+unset BUNDLE_IGNORE_CONFIG
+
+# Run the actual app using the bundled Ruby interpreter, with Bundler activated.
+exec "$SELFDIR/lib/ruby/bin/ruby" -rbundler/setup "$SELFDIR/lib/vendor/ruby/2.2.0/bin/synapse" "$2" "$3"' > packaging/wrapper.sh
+
+chmod +x packaging/wrapper.sh
+cp packaging/wrapper.sh synapse-linux-x86_64/synapse
+
+
+gem install ./synapse-0.12.1.gem --local --force -i packaging/vendor/ruby/2.2.0 --verbose --no-ri --no-rdoc
+
+cp -pR packaging/vendor synapse-linux-x86_64/lib/
+
+
+# ------------ Cleanup ---------------
 rm -rf packaging/tmp
 rm -f packaging/vendor/*/*/cache/*
 
+# ------------ Test it ---------------
+cd synapse-linux-x86_64
+./synapse
 
 
 
