@@ -42,7 +42,7 @@ module Synapse
 
     # start all the watchers and enable haproxy configuration
     def run
-      log.info "synapse: starting..."
+      log.info "synapse: starting version 0.12.1..."
 
       # start all the watchers
       @service_watchers.map { |watcher| watcher.start }
