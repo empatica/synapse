@@ -1,5 +1,6 @@
 require "synapse/service_watcher/base"
 require "synapse/service_watcher/aws_ecs"
+require "synapse/service_watcher/docker"
 
 module Synapse
   class ServiceWatcher
@@ -7,6 +8,7 @@ module Synapse
     @watchers = {
       'base' => BaseWatcher,
       'aws_ecs' => AwsEcsWatcher,
+      'docker' => DockerWatcher,
     }
 
     # the method which actually dispatches watcher creation requests
