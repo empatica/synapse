@@ -16,6 +16,7 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
 
   gem.add_runtime_dependency "aws-sdk", "~> 2.0"
+  gem.add_runtime_dependency "docker-api", '~> 1.7', '>= 1.7.2'
   #gem.add_runtime_dependency "aws-sdk-v1", "~> 1.39"
   #gem.add_runtime_dependency "docker-api", '~> 1.7', '>= 1.7.2'
   #gem.add_runtime_dependency 'zk', '~> 1.9', '>= 1.9.5'
