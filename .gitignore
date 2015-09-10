@@ -22,3 +22,6 @@ vendor/
 
 synapse.jar
 .ruby-version
+bundler-config
+traveling-ruby-20150715-2.2.2-linux-x86_64.tar.gz
+wrapper.sh
