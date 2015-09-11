@@ -15,7 +15,13 @@ module Synapse
 
       def configure_logger_for(classname)
         logger = Logger.new(STDERR)
-        logger.level = Logger::INFO unless ENV['DEBUG']
+
+        if ENV['DEBUG']
+          logger.level = Logger::DEBUG
+        else
+          logger.level = Logger::INFO
+        end
+
         logger.progname = classname
         return logger
       end
