@@ -64,7 +64,8 @@ module Synapse
 
     def containers
       backends = @discovery['servers'].map do |server|
-        Docker.url = "http://#{server['host']}:#{server['port'] || 4243}"
+        Docker.url = "https://#{server['host']}:#{server['port'] || 2376}"
+        #log.debug(Docker.url)
         begin
           cnts = Docker::Util.parse_json(Docker.connection.get('/containers/json', {}))
         rescue => e
@@ -74,11 +75,20 @@ module Synapse
         cnts.each do |cnt|
           cnt['Ports'] = rewrite_container_ports cnt['Ports']
         end
+        #log.debug('--------------------------------------------------------------')
+        #log.debug(cnts)
+        #log.debug('--------------------------------------------------------------')
         # Discover containers that match the image/port we're interested in
         cnts = cnts.find_all do |cnt|
-          cnt["Image"].rpartition(":").first == @discovery["image_name"] \
+          cnt["Image"].split(":").first == @discovery["image_name"] \
             and cnt["Ports"].has_key?(@discovery["container_port"].to_s())
         end
+        #cnts.each do |cnt|
+        #  log.debug('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        #  log.debug(cnt["Image"])
+        #  log.debug(@discovery["container_port"].to_s())
+        #  log.debug('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        #end
         cnts.map do |cnt|
           {
             'name' => server['name'],
