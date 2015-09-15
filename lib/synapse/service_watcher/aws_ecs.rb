@@ -41,49 +41,53 @@ module Synapse
       new_backends = []
       # api_task_ids returns an array of arrays of task_ids, so each iteration gives us 100 or less task_ids to work with
       api_task_ids.each do |task_ids | tasks = api_describe_tasks(task_ids)
-        container_instance_arns = tasks.map(&:container_instance_arn)
-        container_instances = api_describe_container_instances(container_instance_arns)
+        if tasks.count>0
 
-        # Need a lookup based on the arn later, so make the map here
-        container_instance_map = container_instances.group_by(&:container_instance_arn)
+          container_instance_arns = tasks.map(&:container_instance_arn)
+          container_instances = api_describe_container_instances(container_instance_arns)
 
-        ec2_instance_ids = container_instances.map(&:ec2_instance_id).uniq
-        ec2_instances = api_describe_instances(ec2_instance_ids)
+          # Need a lookup based on the arn later, so make the map here
+          container_instance_map = container_instances.group_by(&:container_instance_arn)
 
-        # Need a fast lookup on the ec2 instance id for IP and DNS later
-        ec2_instance_map = {}
-        ec2_instances.each do |reservation|
-          reservation.instances.each do |instance|
-            ec2_instance_map[instance.instance_id] = instance
+          ec2_instance_ids = container_instances.map(&:ec2_instance_id).uniq
+          ec2_instances = api_describe_instances(ec2_instance_ids)
+
+          # Need a fast lookup on the ec2 instance id for IP and DNS later
+          ec2_instance_map = {}
+          ec2_instances.each do |reservation|
+            reservation.instances.each do |instance|
+              ec2_instance_map[instance.instance_id] = instance
+            end
           end
-        end
 
-        # This loop iterates through each task, and for every container found in a single task
-        # ensures that there is exactly 1 host port bound across all containers in the task to
-        # remove ambiguity about which container and port to discover.
-        tasks.each do |t|
-          host_ports = []
-          # Make sure to only discover RUNNING tasks so pre-launch or post-shutdown aren't included
-          if t.last_status == "RUNNING"
-            t.containers.each do |c|
-              if c.network_bindings
-                c.network_bindings.each do |nb|
-                  if nb.host_port
-                    host_ports << nb.host_port
+
+          # This loop iterates through each task, and for every container found in a single task
+          # ensures that there is exactly 1 host port bound across all containers in the task to
+          # remove ambiguity about which container and port to discover.
+          tasks.each do |t|
+            host_ports = []
+            # Make sure to only discover RUNNING tasks so pre-launch or post-shutdown aren't included
+            if t.last_status == "RUNNING"
+              t.containers.each do |c|
+                if c.network_bindings
+                  c.network_bindings.each do |nb|
+                    if nb.host_port
+                      host_ports << nb.host_port
+                    end
                   end
                 end
               end
             end
-          end
-          if host_ports.size == 1
-            ci = container_instance_map[t.container_instance_arn].first
-            instance = ec2_instance_map[ci.ec2_instance_id]
-            # Only discover private dns and ip, the format below is needed for synapse to configure haproxy
-            new_backends << {
-              'name' => instance.private_dns_name,
-              'host' => instance.private_ip_address,
-              'port' => host_ports.first
-            }
+            if host_ports.size == 1
+              ci = container_instance_map[t.container_instance_arn].first
+              instance = ec2_instance_map[ci.ec2_instance_id]
+              # Only discover private dns and ip, the format below is needed for synapse to configure haproxy
+              new_backends << {
+                'name' => instance.private_dns_name,
+                'host' => instance.private_ip_address,
+                'port' => host_ports.first
+              }
+            end
           end
         end
       end
@@ -179,17 +183,27 @@ module Synapse
 
             def api_describe_tasks(task_ids)
               log.info "Calling api_describe_tasks"
-              @ecs.describe_tasks(cluster: @discovery['aws_ecs_cluster'], tasks: task_ids).tasks
+              resp = []
+              if task_ids.count>0
+                resp = @ecs.describe_tasks(cluster: @discovery['aws_ecs_cluster'], tasks: task_ids).tasks
+              end
+              return resp
             end
 
             def api_describe_container_instances(container_instance_arns)
               log.info "Calling api_describe_container_instances"
-              @ecs.describe_container_instances(cluster: @discovery['aws_ecs_cluster'], container_instances: container_instance_arns).container_instances
+              if container_instance_arns.count>0
+                resp = @ecs.describe_container_instances(cluster: @discovery['aws_ecs_cluster'], container_instances: container_instance_arns).container_instances
+              end
+              return resp
             end
 
             def api_describe_instances(ec2_instance_ids)
               log.info "Calling api_describe_instances"
-              @ec2.describe_instances(instance_ids: ec2_instance_ids).reservations
+              if ec2_instance_ids.count>0
+                resp = @ec2.describe_instances(instance_ids: ec2_instance_ids).reservations
+              end
+              return resp
             end
           end
         end
