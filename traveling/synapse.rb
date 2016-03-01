@@ -1,0 +1,63 @@
+
+require 'yaml'
+require 'optparse'
+
+
+
+require 'synapse'
+
+options={}
+
+# set command line options
+optparse = OptionParser.new do |opts|
+  opts.banner =<<-EOB
+Welcome to synapse
+
+Usage: synapse --config /path/to/synapse/config
+  EOB
+
+  options[:config] = ENV['SYNAPSE_CONFIG']
+  opts.on('-c config','--config config', String, 'path to synapse config') do |key,value|
+    options[:config] = key
+  end
+
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+end
+
+# parse command line arguments
+optparse.parse!
+
+def parseconfig(filename)
+  # parse synapse config file
+  begin
+    c = YAML::parse(File.read(filename))
+  rescue Errno::ENOENT => e
+    raise ArgumentError, "config file does not exist:\n#{e.inspect}"
+  rescue Errno::EACCES => e
+    raise ArgumentError, "could not open config file:\n#{e.inspect}"
+  rescue YAML::SyntaxError => e
+    raise "config file #{filename} is not yaml:\n#{e.inspect}"
+  end
+  return c.to_ruby
+end
+
+config = parseconfig(options[:config])
+config['services'] ||= {}
+
+if config.has_key?('service_conf_dir')
+  cdir = File.expand_path(config['service_conf_dir'])
+  if ! Dir.exists?(cdir)
+    raise "service conf dir does not exist:#{cdir}"
+  end
+  cfiles = Dir.glob(File.join(cdir, '*.{json,yaml}'))
+  cfiles.each { |x| config['services'][File.basename(x[/(.*)\.(json|yaml)$/, 1])] = parseconfig(x) }
+end
+
+# run synapse
+s = Synapse::Synapse.new(config)
+s.run
+
+puts "synapse has exited"

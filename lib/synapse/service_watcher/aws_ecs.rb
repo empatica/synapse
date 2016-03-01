@@ -116,7 +116,7 @@ module Synapse
                   last_backends = current_backends
                   configure_backends(current_backends)
                 else
-                  log.info "synapse: aws_ecs watcher backends are unchanged."
+                  log.debug "synapse: aws_ecs watcher backends are unchanged."
                 end
 
                 sleep_until_next_check(start)
@@ -154,23 +154,23 @@ module Synapse
             end
 
             def api_cluster_ids
-              log.info "Calling api_cluster_ids"
+              log.debug "Calling api_cluster_ids"
               resp =  @ecs.list_clusters()
-              log.info "---------------- \n\nCalled api_cluster_ids #{resp.data.cluster_arns}\n\n\n"
+              log.debug "---------------- \n\nCalled api_cluster_ids #{resp.data.cluster_arns}\n\n\n"
 
               resp = @ecs.list_container_instances({cluster: "test"})
-              log.info "---------------- \n\nCalled list_container_instances #{resp.data.container_instance_arns}\n\n\n"
+              log.debug "---------------- \n\nCalled list_container_instances #{resp.data.container_instance_arns}\n\n\n"
 
               resp = @ecs.list_task_definition_families()
-              log.info "---------------- \n\nCalled list_task_definition_families #{resp.data.families}\n\n\n"
+              log.debug "---------------- \n\nCalled list_task_definition_families #{resp.data.families}\n\n\n"
 
               resp = @ecs.list_services(cluster: "test")
-              log.info "---------------- \n\nCalled list_services #{resp.data.service_arns}\n\n\n"
+              log.debug "---------------- \n\nCalled list_services #{resp.data.service_arns}\n\n\n"
 
               resp = @ecs.list_tasks({cluster: @discovery['aws_ecs_cluster'], family: @discovery['aws_ecs_family']})
-              log.info "---------------- \n\nCalled list_services #{resp.data.task_arns}\n\n\n"
+              log.debug "---------------- \n\nCalled list_services #{resp.data.task_arns}\n\n\n"
 
-              log.info "--------------------------------------------------------------------\n"
+              log.debug "--------------------------------------------------------------------\n"
 
             end
 
@@ -182,7 +182,7 @@ module Synapse
             end
 
             def api_describe_tasks(task_ids)
-              log.info "Calling api_describe_tasks"
+              log.debug "Calling api_describe_tasks"
               resp = []
               if task_ids.count>0
                 resp = @ecs.describe_tasks(cluster: @discovery['aws_ecs_cluster'], tasks: task_ids).tasks
@@ -191,7 +191,7 @@ module Synapse
             end
 
             def api_describe_container_instances(container_instance_arns)
-              log.info "Calling api_describe_container_instances"
+              log.debug "Calling api_describe_container_instances"
               if container_instance_arns.count>0
                 resp = @ecs.describe_container_instances(cluster: @discovery['aws_ecs_cluster'], container_instances: container_instance_arns).container_instances
               end
@@ -199,7 +199,7 @@ module Synapse
             end
 
             def api_describe_instances(ec2_instance_ids)
-              log.info "Calling api_describe_instances"
+              log.debug "Calling api_describe_instances"
               if ec2_instance_ids.count>0
                 resp = @ec2.describe_instances(instance_ids: ec2_instance_ids).reservations
               end

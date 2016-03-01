@@ -1,3 +1,4 @@
+# DEBUG < INFO < WARN < ERROR < FATAL < UNKNOWN
 module Synapse
   module Logging
 
